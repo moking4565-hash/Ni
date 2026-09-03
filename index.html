@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHROUDNET // NOSFERATU</title>
+<style>
+  :root{
+    --black:#000000;
+    --darkgreen-bg:#021500;
+    --mid-green:#003b00;
+    --neon:#00ff41;
+    --neon-dim:#0b8f2c;
+    --grey-green:#1a2b1f;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;
+    background:var(--black);
+    font-family:'Courier New', Consolas, monospace;
+    color:var(--neon);
+    overflow:hidden;
+  }
+  #matrix-canvas{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    z-index:0; opacity:0.55;
+  }
+  .scanlines{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    pointer-events:none;z-index:5;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(0,255,65,0.03) 0px,
+      rgba(0,255,65,0.03) 1px,
+      transparent 2px,
+      transparent 4px
+    );
+    mix-blend-mode:overlay;
+  }
+  .noise{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    pointer-events:none;z-index:6;
+    background:repeating-radial-gradient(circle, rgba(255,255,255,0.015) 0, transparent 1px);
+    animation:noiseshift .2s steps(2) infinite;
+    opacity:.5;
+  }
+  @keyframes noiseshift{
+    0%{transform:translate(0,0)}
+    50%{transform:translate(-1px,1px)}
+    100%{transform:translate(1px,-1px)}
+  }
+  .vignette{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    pointer-events:none;z-index:7;
+    box-shadow: inset 0 0 220px rgba(0,0,0,0.95);
+  }
+
+  /* ---------- PAGES ---------- */
+  .page{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    z-index:2; display:flex; opacity:0;
+    pointer-events:none;
+    transition:opacity 1.1s ease;
+  }
+  .page.active{opacity:1;pointer-events:all;}
+
+  /* ============ PAGE 1: LOGIN ============ */
+  #page-login{
+    flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;
+  }
+  .boot-text{
+    position:absolute; top:18px; left:18px;
+    font-size:11px; color:var(--neon-dim);
+    letter-spacing:1px; text-align:left; line-height:1.5;
+    opacity:.8;
+  }
+  .logo-wrap{
+    position:relative;
+    width:340px;height:340px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #logo-canvas{width:340px;height:340px;}
+
+  .brand-title{
+    font-family:'Times New Roman', serif;
+    font-size:52px;
+    letter-spacing:14px;
+    color:var(--neon);
+    text-shadow:0 0 10px var(--neon), 0 0 30px var(--neon-dim), 0 0 60px #001a00;
+    margin-top:-10px;
+    position:relative;
+    animation:flicker 4s infinite;
+  }
+  @keyframes flicker{
+    0%,100%{opacity:1;}
+    3%{opacity:.4;}
+    6%{opacity:1;}
+    7%{opacity:.2;}
+    8%{opacity:1;}
+    52%{opacity:1;}
+    53%{opacity:.5;}
+    54%{opacity:1;}
+  }
+  .glitch{
+    position:relative;
+  }
+  .glitch::before, .glitch::after{
+    content:'NOSFERATU';
+    position:absolute;top:0;left:0;width:100%;
+    font-family:'Times New Roman', serif;
+    letter-spacing:14px;
+    opacity:.7;
+    clip-path:inset(0 0 0 0);
+  }
+  .glitch::before{color:#ff003c; left:2px; animation:glitchTop 3.5s infinite linear alternate-reverse;}
+  .glitch::after{color:#00fff9; left:-2px; animation:glitchBot 2.7s infinite linear alternate-reverse;}
+  @keyframes glitchTop{
+    0%{clip-path:inset(0 0 85% 0); transform:translate(-1px,-1px);}
+    20%{clip-path:inset(10% 0 60% 0); transform:translate(1px,0);}
+    40%{clip-path:inset(40% 0 40% 0); transform:translate(-2px,1px);}
+    60%{clip-path:inset(70% 0 5% 0); transform:translate(2px,-1px);}
+    80%{clip-path:inset(20% 0 70% 0); transform:translate(-1px,0);}
+    100%{clip-path:inset(0 0 90% 0); transform:translate(1px,1px);}
+  }
+  @keyframes glitchBot{
+    0%{clip-path:inset(85% 0 0 0); transform:translate(1px,1px);}
+    25%{clip-path:inset(50% 0 20% 0); transform:translate(-2px,0);}
+    50%{clip-path:inset(20% 0 60% 0); transform:translate(2px,-1px);}
+    75%{clip-path:inset(65% 0 10% 0); transform:translate(-1px,1px);}
+    100%{clip-path:inset(90% 0 0 0); transform:translate(1px,-1px);}
+  }
+  .subtitle{
+    letter-spacing:8px; font-size:13px; color:var(--neon-dim);
+    margin-top:14px; text-shadow:0 0 6px var(--neon-dim);
+  }
+  .login-form{
+    margin-top:34px; display:flex; flex-direction:column; align-items:center; gap:14px;
+  }
+  .field-label{
+    font-size:11px; letter-spacing:4px; color:var(--neon-dim);
+  }
+  #password-input{
+    background:rgba(0,20,0,0.5);
+    border:1px solid var(--mid-green);
+    color:var(--neon);
+    font-family:'Courier New',monospace;
+    font-size:16px; letter-spacing:6px;
+    padding:12px 18px; width:280px; text-align:center;
+    outline:none;
+    box-shadow:0 0 12px rgba(0,255,65,0.15) inset;
+    transition:box-shadow .3s, border-color .3s;
+  }
+  #password-input:focus{
+    border-color:var(--neon);
+    box-shadow:0 0 18px rgba(0,255,65,0.45) inset, 0 0 14px rgba(0,255,65,0.4);
+  }
+  #access-btn{
+    background:transparent;
+    border:1px solid var(--neon);
+    color:var(--neon);
+    letter-spacing:5px; font-size:13px;
+    padding:11px 34px; cursor:pointer;
+    font-family:'Courier New',monospace;
+    text-shadow:0 0 6px var(--neon);
+    box-shadow:0 0 10px rgba(0,255,65,0.3);
+    transition:all .25s;
+  }
+  #access-btn:hover{
+    background:rgba(0,255,65,0.12);
+    box-shadow:0 0 26px rgba(0,255,65,0.7);
+  }
+  .login-error{
+    font-size:11px; letter-spacing:2px; color:#ff2b2b; height:14px;
+    text-shadow:0 0 6px #ff2b2b; opacity:0;
+    transition:opacity .3s;
+  }
+  .login-error.show{opacity:1;}
+  .quote-block{
+    margin-top:46px; max-width:440px; font-size:12px;
+    color:var(--neon-dim); line-height:1.8; letter-spacing:1px;
+    font-style:italic;
+  }
+  .quote-sign{
+    display:block; margin-top:10px; font-size:11px; letter-spacing:3px; color:var(--mid-green);
+  }
+  .hint{
+    position:absolute; bottom:16px; font-size:10px; color:var(--mid-green);
+    letter-spacing:2px;
+  }
+
+  /* ============ PAGE 2: CHAT ============ */
+  #page-chat{
+    flex-direction:column;
+  }
+  .topbar{
+    height:52px; border-bottom:1px solid var(--mid-green);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px; background:rgba(0,10,0,0.6); backdrop-filter:blur(2px);
+  }
+  .topbar-title{
+    font-family:'Times New Roman', serif; letter-spacing:6px; font-size:18px;
+    text-shadow:0 0 8px var(--neon);
+  }
+  .topbar-sub{
+    font-size:10px; color:var(--neon-dim); letter-spacing:2px; margin-top:2px;
+  }
+  .logout-btn{
+    font-size:10px; letter-spacing:2px; color:var(--neon-dim);
+    border:1px solid var(--mid-green); padding:6px 12px; cursor:pointer;
+    background:transparent; font-family:inherit;
+  }
+  .logout-btn:hover{color:var(--neon); border-color:var(--neon);}
+
+  .chat-body{
+    flex:1; display:flex; overflow:hidden;
+  }
+  .side-panel{
+    width:220px; border-right:1px solid var(--mid-green);
+    padding:16px 14px; overflow-y:auto; background:rgba(0,8,0,0.4);
+    font-size:12px;
+  }
+  .side-panel.right{
+    border-right:none; border-left:1px solid var(--mid-green);
+  }
+  .side-heading{
+    color:var(--neon-dim); letter-spacing:3px; font-size:10px;
+    margin:16px 0 8px 0;
+  }
+  .side-heading:first-child{margin-top:0;}
+  .channel-item, .user-item, .whisper-item{
+    padding:6px 8px; margin-bottom:2px; cursor:pointer; letter-spacing:1px;
+    color:#7fce8e; border-left:2px solid transparent;
+    transition:all .15s;
+  }
+  .channel-item:hover, .whisper-item:hover{
+    background:rgba(0,255,65,0.07); border-left:2px solid var(--neon);
+    color:var(--neon);
+  }
+  .channel-item.active{
+    background:rgba(0,255,65,0.12); border-left:2px solid var(--neon); color:var(--neon);
+  }
+  .user-item{
+    color:var(--neon-dim); font-size:11px; display:flex; align-items:center; gap:6px;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--neon);box-shadow:0 0 6px var(--neon);}
+
+  .chat-center{
+    flex:1; display:flex; flex-direction:column; position:relative; min-width:0;
+  }
+  .center-logo-wrap{
+    height:150px; display:flex; align-items:center; justify-content:center;
+    border-bottom:1px solid var(--mid-green); position:relative; flex-shrink:0;
+  }
+  #chat-logo-canvas{width:150px;height:150px;}
+  .center-logo-caption{
+    position:absolute; bottom:8px; font-size:9px; letter-spacing:4px; color:var(--mid-green);
+  }
+
+  .messages{
+    flex:1; overflow-y:auto; padding:18px 24px; font-size:13px; line-height:1.9;
+  }
+  .msg-line{margin-bottom:4px; opacity:0; animation:msgIn .4s forwards;}
+  @keyframes msgIn{ to{opacity:1;} }
+  .msg-time{color:var(--mid-green); margin-right:8px;}
+  .msg-user{color:var(--neon); font-weight:bold; margin-right:6px;}
+  .msg-user.you{color:#8fffb0;}
+  .msg-text{color:#8fce9a;}
+  .channel-hash{color:var(--neon-dim); letter-spacing:2px; font-size:12px; margin-bottom:14px; display:block;}
+
+  .msg-input-bar{
+    border-top:1px solid var(--mid-green); padding:14px 20px;
+    display:flex; gap:10px; background:rgba(0,10,0,0.5);
+  }
+  #msg-input{
+    flex:1; background:rgba(0,20,0,0.4); border:1px solid var(--mid-green);
+    color:var(--neon); font-family:inherit; padding:10px 14px; outline:none; font-size:13px;
+  }
+  #msg-input:focus{border-color:var(--neon); box-shadow:0 0 10px rgba(0,255,65,0.3) inset;}
+  #send-btn{
+    background:transparent; border:1px solid var(--neon); color:var(--neon);
+    padding:10px 22px; letter-spacing:3px; font-size:11px; cursor:pointer;
+    text-shadow:0 0 6px var(--neon); transition:all .2s;
+  }
+  #send-btn:hover{background:rgba(0,255,65,0.12); box-shadow:0 0 16px rgba(0,255,65,0.6);}
+
+  .info-block{margin-bottom:18px;}
+  .info-label{color:var(--mid-green); letter-spacing:2px; font-size:9px; margin-bottom:4px;}
+  .info-value{color:#7fce8e; font-size:12px;}
+
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--mid-green);}
+
+  @media (max-width:900px){
+    .side-panel{width:150px; font-size:10px;}
+    .side-panel.right{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="matrix-canvas"></canvas>
+<div class="scanlines"></div>
+<div class="noise"></div>
+<div class="vignette"></div>
+
+<!-- ============ PAGE 1 ============ -->
+<div class="page active" id="page-login">
+  <div class="boot-text" id="boot-text"></div>
+
+  <div class="logo-wrap">
+    <canvas id="logo-canvas" width="340" height="340"></canvas>
+  </div>
+
+  <div class="brand-title glitch" id="brand-title">NOSFERATU</div>
+  <div class="subtitle">SHROUDNET ACCESS</div>
+
+  <div class="login-form">
+    <div class="field-label">ENTER ACCESS PASSWORD</div>
+    <input type="password" id="password-input" autocomplete="off" spellcheck="false" placeholder="••••••••">
+    <button id="access-btn">ACCESS</button>
+    <div class="login-error" id="login-error">ACCESS DENIED — INVALID KEY</div>
+  </div>
+
+  <div class="quote-block">
+    "We exist between shadows and data.<br>The world will never see us."
+    <span class="quote-sign">— Clan Nosferatu</span>
+  </div>
+
+  <div class="hint">ANY PASSWORD GRANTS ENTRY // DEMO TERMINAL</div>
+</div>
+
+<!-- ============ PAGE 2 ============ -->
+<div class="page" id="page-chat">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">SHROUDNET</div>
+      <div class="topbar-sub">NOSFERATU GLOBAL COMMUNICATION NETWORK</div>
+    </div>
+    <button class="logout-btn" id="logout-btn">◄ DISCONNECT</button>
+  </div>
+
+  <div class="chat-body">
+    <div class="side-panel">
+      <div class="side-heading">GLOBAL</div>
+      <div class="channel-item active" data-channel="general"># general</div>
+      <div class="channel-item" data-channel="crypt-talk"># crypt-talk</div>
+      <div class="channel-item" data-channel="clan-business"># clan-business</div>
+      <div class="channel-item" data-channel="shadows"># shadows</div>
+      <div class="channel-item" data-channel="haven-network"># haven-network</div>
+
+      <div class="side-heading">WHISPERS</div>
+      <div class="whisper-item">@ NosferatuContact</div>
+      <div class="whisper-item">@ SewerEcho</div>
+      <div class="whisper-item">@ Underground</div>
+
+      <div class="side-heading">USERS ONLINE [23]</div>
+      <div class="user-item"><span class="dot"></span>.exsanguis</div>
+      <div class="user-item"><span class="dot"></span>.bastet</div>
+      <div class="user-item"><span class="dot"></span>.ashen_one</div>
+      <div class="user-item"><span class="dot"></span>.crypt_rat</div>
+      <div class="user-item"><span class="dot"></span>.sewer_king</div>
+      <div class="user-item"><span class="dot"></span>.veil_walker</div>
+      <div class="user-item"><span class="dot"></span>.nocturne</div>
+    </div>
+
+    <div class="chat-center">
+      <div class="center-logo-wrap">
+        <canvas id="chat-logo-canvas" width="150" height="150"></canvas>
+        <div class="center-logo-caption">SHROUDNET SIGIL</div>
+      </div>
+      <div class="messages" id="messages">
+        <span class="channel-hash"># general</span>
+      </div>
+      <div class="msg-input-bar">
+        <input type="text" id="msg-input" placeholder="Type your message, child..." autocomplete="off">
+        <button id="send-btn">SEND</button>
+      </div>
+    </div>
+
+    <div class="side-panel right">
+      <div class="side-heading">CHANNEL INFO</div>
+      <div class="info-block">
+        <div class="info-label">CHANNEL</div>
+        <div class="info-value"># general</div>
+      </div>
+      <div class="info-block">
+        <div class="info-label">DESCRIPTION</div>
+        <div class="info-value">Public communication channel.</div>
+      </div>
+      <div class="info-block">
+        <div class="info-label">USERS</div>
+        <div class="info-value">23 online</div>
+      </div>
+      <div class="info-block">
+        <div class="info-label">SECURITY</div>
+        <div class="info-value">Encrypted</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= MATRIX RAIN ================= */
+const mCanvas = document.getElementById('matrix-canvas');
+const mCtx = mCanvas.getContext('2d');
+let w,h,columns,drops;
+const chars = "アカサタナハマヤラワ0123456789ABCDEFｱｲｳｴｵﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛ";
+function resizeMatrix(){
+  w = mCanvas.width = window.innerWidth;
+  h = mCanvas.height = window.innerHeight;
+  columns = Math.floor(w/16);
+  drops = new Array(columns).fill(1);
+}
+resizeMatrix();
+window.addEventListener('resize', resizeMatrix);
+function drawMatrix(){
+  mCtx.fillStyle = "rgba(0,0,0,0.06)";
+  mCtx.fillRect(0,0,w,h);
+  mCtx.font = "15px monospace";
+  for(let i=0;i<drops.length;i++){
+    const text = chars[Math.floor(Math.random()*chars.length)];
+    const x = i*16;
+    const y = drops[i]*16;
+    const grad = Math.random();
+    mCtx.fillStyle = grad > 0.97 ? "#c8ffd8" : "#00ff41";
+    mCtx.fillText(text, x, y);
+    if(y > h && Math.random() > 0.975){ drops[i] = 0; }
+    drops[i]++;
+  }
+}
+setInterval(drawMatrix, 45);
+
+/* ================= BOOT TEXT ================= */
+const bootLines = [
+"SHROUDNET KERNEL v6.66",
+"INITIALIZING SUBNET...",
+"DECRYPTING HAVEN NODES...",
+"LOADING CLAN REGISTRY...",
+"BLOOD CIPHER: OK",
+"CONNECTION: HIDDEN",
+"AWAITING CREDENTIALS_"
+];
+const bootEl = document.getElementById('boot-text');
+let bi=0;
+function typeBoot(){
+  if(bi < bootLines.length){
+    bootEl.innerHTML += bootLines[bi] + "<br>";
+    bi++;
+    setTimeout(typeBoot, 260);
+  }
+}
+typeBoot();
+
+/* ================= PARTICLE LOGO (shared engine) ================= */
+function createLogoEngine(canvasId, size){
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  canvas.width = size; canvas.height = size;
+
+  // build target points from an ankh-with-horns sigil, matching the reference glyph
+  function buildTargets(){
+    const pts = [];
+    const cx = size/2;
+
+    // === TOP LOOP ===
+    const loopCy = size*0.20;
+    const loopRx = size*0.10;
+    const loopRy = size*0.13;
+    for(let a=0;a<Math.PI*2;a+=0.07){
+      pts.push([cx+Math.cos(a)*loopRx, loopCy+Math.sin(a)*loopRy]);
+    }
+
+    // === ARMS (drooping horn-like crossbar) ===
+    const armY0 = loopCy+loopRy;
+    const armSpan = size*0.27;
+    for(const side of [-1,1]){
+      for(let i=0;i<=26;i++){
+        const t = i/26;
+        const x = cx + side*t*armSpan;
+        const y = armY0 + Math.pow(t,1.6)*size*0.15;
+        pts.push([x,y]);
+      }
+      const tipX = cx + side*armSpan;
+      const tipY = armY0 + size*0.15;
+      for(let a=0;a<Math.PI*1.6;a+=0.28){
+        const r = size*0.026*(1-a/(Math.PI*1.6)*0.5);
+        pts.push([tipX + Math.cos(a)*r*side, tipY + Math.sin(a)*r]);
+      }
+    }
+
+    // === VERTICAL STEM ===
+    const stemTop = armY0;
+    const stemBottom = size*0.60;
+    for(let i=0;i<=32;i++){
+      const t=i/32;
+      pts.push([cx, stemTop + t*(stemBottom-stemTop)]);
+    }
+
+    // === BOTTOM FORK (two swooping tails with curled tips) ===
+    for(const side of [-1,1]){
+      for(let i=0;i<=32;i++){
+        const t=i/32;
+        const x = cx + side*Math.sin(t*Math.PI*0.55)*size*0.21;
+        const y = stemBottom + t*size*0.28;
+        pts.push([x,y]);
+      }
+      const endX = cx + side*Math.sin(Math.PI*0.55)*size*0.21;
+      const endY = stemBottom + size*0.28;
+      for(let a=0;a<Math.PI*1.8;a+=0.3){
+        const r = size*0.032*(1-a/(Math.PI*1.8)*0.6);
+        pts.push([endX + Math.cos(a)*r*side, endY + Math.sin(a)*r]);
+      }
+    }
+    return pts;
+  }
+
+  const targets = buildTargets();
+  const particles = targets.map(t=>({
+    x: Math.random()*size,
+    y: Math.random()*size,
+    tx: t[0], ty: t[1],
+    vx:0, vy:0,
+    char: chars[Math.floor(Math.random()*chars.length)],
+    scattered:false,
+    charTimer: Math.random()*60
+  }));
+
+  let scatterMode = false;
+
+  function animate(){
+    ctx.clearRect(0,0,size,size);
+    ctx.font = "10px monospace";
+    for(const p of particles){
+      const targetX = scatterMode ? (Math.random()*size) : p.tx;
+      const targetY = scatterMode ? (Math.random()*size) : p.ty;
+      const dx = (scatterMode ? p.tx + (Math.random()-0.5)*40 : p.tx) - p.x;
+      const dy = (scatterMode ? p.ty + (Math.random()-0.5)*40 : p.ty) - p.y;
+      p.vx += dx*0.02; p.vy += dy*0.02;
+      p.vx *= 0.85; p.vy *= 0.85;
+      p.x += p.vx; p.y += p.vy;
+
+      p.charTimer--;
+      if(p.charTimer<=0){
+        p.char = chars[Math.floor(Math.random()*chars.length)];
+        p.charTimer = 40+Math.random()*60;
+      }
+      const dist = Math.hypot(dx,dy);
+      const alpha = Math.max(0.25, 1-dist/120);
+      ctx.fillStyle = `rgba(0,255,65,${alpha})`;
+      ctx.shadowColor = '#00ff41';
+      ctx.shadowBlur = 4;
+      ctx.fillText(p.char, p.x, p.y);
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
+
+  return {
+    scatter(temp){
+      scatterMode = true;
+      setTimeout(()=>{ scatterMode = false; }, temp || 1200);
+    }
+  };
+}
+
+const loginLogo = createLogoEngine('logo-canvas', 340);
+const chatLogo = createLogoEngine('chat-logo-canvas', 150);
+
+/* password input triggers particle movement */
+const pwInput = document.getElementById('password-input');
+pwInput.addEventListener('input', ()=>{
+  loginLogo.scatter(500);
+});
+
+/* ================= LOGIN LOGIC ================= */
+const accessBtn = document.getElementById('access-btn');
+const loginError = document.getElementById('login-error');
+const pageLogin = document.getElementById('page-login');
+const pageChat = document.getElementById('page-chat');
+
+accessBtn.addEventListener('click', tryAccess);
+pwInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryAccess(); });
+
+function tryAccess(){
+  if(pwInput.value.trim().length === 0){
+    loginError.classList.add('show');
+    pageLogin.style.animation = 'shake .4s';
+    setTimeout(()=> loginError.classList.remove('show'), 1600);
+    return;
+  }
+  loginError.classList.remove('show');
+  loginLogo.scatter(900);
+  accessBtn.textContent = "AUTHENTICATING...";
+  setTimeout(()=>{
+    pageLogin.classList.remove('active');
+    pageChat.classList.add('active');
+  }, 900);
+}
+
+document.getElementById('logout-btn').addEventListener('click', ()=>{
+  pageChat.classList.remove('active');
+  pageLogin.classList.add('active');
+  pwInput.value = '';
+  accessBtn.textContent = 'ACCESS';
+});
+
+/* ================= CHAT LOGIC ================= */
+const messagesEl = document.getElementById('messages');
+const msgInput = document.getElementById('msg-input');
+const sendBtn = document.getElementById('send-btn');
+
+function timeStamp(){
+  const d = new Date();
+  return '['+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+']';
+}
+
+function appendMessage(user, text, isYou){
+  const div = document.createElement('div');
+  div.className = 'msg-line';
+  div.innerHTML = `<span class="msg-time">${timeStamp()}</span><span class="msg-user${isYou?' you':''}">${user}:</span><span class="msg-text">${text}</span>`;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function sendMessage(){
+  const val = msgInput.value.trim();
+  if(!val) return;
+  appendMessage('.you', escapeHtml(val), true);
+  msgInput.value = '';
+  chatLogo.scatter(700);
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+sendBtn.addEventListener('click', sendMessage);
+msgInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendMessage(); });
+
+/* channel switching (visual only) */
+document.querySelectorAll('.channel-item').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    document.querySelectorAll('.channel-item').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelector('.channel-hash').textContent = '# ' + el.dataset.channel;
+  });
+});
+</script>
+</body>
+</html>
