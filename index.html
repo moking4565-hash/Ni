@@ -332,6 +332,24 @@
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--mid-green);}
 
+  .sound-btn{
+    position:fixed; top:16px; right:16px; z-index:20;
+    width:44px; height:44px; border-radius:50%;
+    background:rgba(0,10,0,0.65); border:1px solid var(--mid-green);
+    color:var(--neon-dim); font-size:19px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .25s; box-shadow:0 0 10px rgba(0,255,65,0.15);
+  }
+  .sound-btn:hover{border-color:var(--neon); color:var(--neon); box-shadow:0 0 16px rgba(0,255,65,0.4);}
+  .sound-btn.active{
+    color:var(--neon); border-color:var(--neon);
+    animation:soundPulse 2.6s infinite ease-in-out;
+  }
+  @keyframes soundPulse{
+    0%,100%{box-shadow:0 0 12px rgba(0,255,65,0.4);}
+    50%{box-shadow:0 0 22px rgba(0,255,65,0.8);}
+  }
+
   @media (max-width:900px){
     .side-panel{width:150px; font-size:10px;}
     .side-panel.right{display:none;}
@@ -344,6 +362,8 @@
 <div class="scanlines"></div>
 <div class="noise"></div>
 <div class="vignette"></div>
+
+<button class="sound-btn" id="sound-toggle" title="Ambient sound">🔇</button>
 
 <!-- ============ PAGE 1 ============ -->
 <div class="page active" id="page-login">
@@ -663,6 +683,7 @@ function saveLocalMessages(arr){
 }
 
 function renderMessages(list){
+  const wasNearBottom = (messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight) < 120;
   messagesEl.innerHTML = '<span class="channel-hash"># GLOBAL</span>';
   for(const m of list){
     const div = document.createElement('div');
@@ -676,6 +697,9 @@ function renderMessages(list){
       wrap.className = 'msg-image-wrap';
       const img = document.createElement('img');
       img.src = m.image;
+      img.addEventListener('load', ()=>{
+        if(wasNearBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+      });
       const del = document.createElement('div');
       del.className = 'msg-image-del';
       del.textContent = '✕';
@@ -688,7 +712,7 @@ function renderMessages(list){
     }
     messagesEl.appendChild(div);
   }
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  if(wasNearBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
 function deleteImage(id){
@@ -783,6 +807,219 @@ imgInput.addEventListener('change', ()=>{
 
 sendBtn.addEventListener('click', sendMessage);
 msgInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendMessage(); });
+
+/* ================= AMBIENT SOUND (dark gothic drone + bass + guitar, generated live — no audio files) ================= */
+const soundBtn = document.getElementById('sound-toggle');
+let audioCtx = null;
+let masterGain = null;
+let guitarDelay = null;
+let bassDistCurve = null;
+let soundOn = false;
+let riffTimer = null;
+
+function makeDistortionCurve(amount){
+  const n = 44100;
+  const curve = new Float32Array(n);
+  const deg = Math.PI/180;
+  for(let i=0;i<n;i++){
+    const x = i*2/n - 1;
+    curve[i] = (3+amount)*x*20*deg / (Math.PI + amount*Math.abs(x));
+  }
+  return curve;
+}
+
+function buildAmbientSoundscape(){
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0;
+  masterGain.connect(audioCtx.destination);
+
+  // slow-moving lowpass on the whole bed for a "breathing" haunted feel
+  const bedFilter = audioCtx.createBiquadFilter();
+  bedFilter.type = 'lowpass';
+  bedFilter.frequency.value = 900;
+  bedFilter.Q.value = 0.6;
+  bedFilter.connect(masterGain);
+
+  const filterLfo = audioCtx.createOscillator();
+  filterLfo.frequency.value = 0.035;
+  const filterLfoGain = audioCtx.createGain();
+  filterLfoGain.gain.value = 260;
+  filterLfo.connect(filterLfoGain);
+  filterLfoGain.connect(bedFilter.frequency);
+  filterLfo.start();
+
+  // low dark drone (detuned fifths/octaves, like a distant organ/choir)
+  const droneFreqs = [55, 82.41, 110];
+  droneFreqs.forEach((f,i)=>{
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = f + (Math.random()*0.5 - 0.25);
+    const g = audioCtx.createGain();
+    g.gain.value = 0.09;
+    osc.connect(g);
+    g.connect(bedFilter);
+    osc.start();
+  });
+
+  // brown-noise texture for a subterranean/tape-hiss atmosphere
+  const bufferSize = 2 * audioCtx.sampleRate;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  let lastOut = 0;
+  for(let i=0;i<bufferSize;i++){
+    const white = Math.random()*2-1;
+    lastOut = (lastOut + 0.02*white)/1.02;
+    data[i] = lastOut*3.2;
+  }
+  const noiseSrc = audioCtx.createBufferSource();
+  noiseSrc.buffer = noiseBuffer;
+  noiseSrc.loop = true;
+  const noiseFilter = audioCtx.createBiquadFilter();
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.value = 170;
+  noiseFilter.Q.value = 0.7;
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.value = 0.05;
+  noiseSrc.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(masterGain);
+  noiseSrc.start();
+
+  // ghostly high pad with slow tremolo, like a distant choir wail
+  const padOsc = audioCtx.createOscillator();
+  padOsc.type = 'triangle';
+  padOsc.frequency.value = 220;
+  const padGain = audioCtx.createGain();
+  padGain.gain.value = 0.045;
+  const tremLfo = audioCtx.createOscillator();
+  tremLfo.frequency.value = 0.08;
+  const tremGain = audioCtx.createGain();
+  tremGain.gain.value = 0.03;
+  tremLfo.connect(tremGain);
+  tremGain.connect(padGain.gain);
+  padOsc.connect(padGain);
+  padGain.connect(bedFilter);
+  padOsc.start(); tremLfo.start();
+
+  // shared slapback/feedback delay — gives the guitar a cathedral-ish tail
+  guitarDelay = audioCtx.createDelay(1.0);
+  guitarDelay.delayTime.value = 0.34;
+  const delayFilter = audioCtx.createBiquadFilter();
+  delayFilter.type = 'lowpass';
+  delayFilter.frequency.value = 1800;
+  const delayFeedback = audioCtx.createGain();
+  delayFeedback.gain.value = 0.38;
+  const delayWet = audioCtx.createGain();
+  delayWet.gain.value = 0.55;
+  guitarDelay.connect(delayFilter);
+  delayFilter.connect(delayFeedback);
+  delayFeedback.connect(guitarDelay);
+  delayFilter.connect(delayWet);
+  delayWet.connect(masterGain);
+
+  bassDistCurve = makeDistortionCurve(16);
+}
+
+/* --- doom-style bass riff (filtered detuned sawtooth, light overdrive) --- */
+function playBassNote(freq, time, dur){
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(freq, time);
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 420;
+  filter.Q.value = 1.1;
+  const shaper = audioCtx.createWaveShaper();
+  shaper.curve = bassDistCurve;
+  shaper.oversample = '4x';
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0, time);
+  gain.gain.linearRampToValueAtTime(0.16, time+0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, time+dur);
+  osc.connect(filter);
+  filter.connect(shaper);
+  shaper.connect(gain);
+  gain.connect(masterGain);
+  osc.start(time);
+  osc.stop(time+dur+0.05);
+}
+
+/* --- plucked guitar note via Karplus-Strong string synthesis --- */
+function karplusStrongBuffer(freq, duration){
+  const sr = audioCtx.sampleRate;
+  const N = Math.max(2, Math.round(sr/freq));
+  const len = Math.round(duration*sr);
+  const buffer = audioCtx.createBuffer(1, len, sr);
+  const out = buffer.getChannelData(0);
+  const ring = new Float32Array(N);
+  for(let i=0;i<N;i++) ring[i] = Math.random()*2-1;
+  let idx = 0;
+  const decay = 0.9935;
+  for(let i=0;i<len;i++){
+    const cur = ring[idx];
+    const nxt = ring[(idx+1)%N];
+    out[i] = cur;
+    ring[idx] = decay*0.5*(cur+nxt);
+    idx = (idx+1)%N;
+  }
+  return buffer;
+}
+function playGuitarNote(freq, time, dur){
+  const buf = karplusStrongBuffer(freq, dur+0.6);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const toneFilter = audioCtx.createBiquadFilter();
+  toneFilter.type = 'lowpass';
+  toneFilter.frequency.value = 2400;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.13, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time+dur+0.5);
+  src.connect(toneFilter);
+  toneFilter.connect(gain);
+  gain.connect(masterGain);
+  gain.connect(guitarDelay);
+  src.start(time);
+}
+
+/* --- slow 8-beat doom riff loop, bass + sparse guitar arpeggio --- */
+const RIFF_BPM = 64;
+const beatSec = 60/RIFF_BPM;
+const bassSeq    = [55.00, 55.00, 65.41, 73.42, 55.00, 55.00, 82.41, 73.42];
+const guitarSeq  = [null, 220.00, null, 293.66, null, 220.00, null, 164.81];
+const loopDurSec = beatSec * bassSeq.length;
+
+function scheduleRiffLoop(){
+  if(!soundOn) return;
+  const startAt = audioCtx.currentTime + 0.15;
+  for(let i=0;i<bassSeq.length;i++){
+    const t = startAt + i*beatSec;
+    if(bassSeq[i]) playBassNote(bassSeq[i], t, beatSec*0.9);
+    if(guitarSeq[i]) playGuitarNote(guitarSeq[i], t, beatSec*1.8);
+  }
+}
+
+function toggleSound(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    buildAmbientSoundscape();
+  }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  soundOn = !soundOn;
+  const target = soundOn ? 0.24 : 0;
+  masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+  masterGain.gain.linearRampToValueAtTime(target, audioCtx.currentTime + 1.4);
+  soundBtn.textContent = soundOn ? '🔊' : '🔇';
+  soundBtn.classList.toggle('active', soundOn);
+
+  if(soundOn){
+    scheduleRiffLoop();
+    riffTimer = setInterval(scheduleRiffLoop, loopDurSec*1000);
+  } else if(riffTimer){
+    clearInterval(riffTimer);
+    riffTimer = null;
+  }
+}
+soundBtn.addEventListener('click', toggleSound);
 
 </script>
 </body>
