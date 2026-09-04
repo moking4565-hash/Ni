@@ -728,8 +728,13 @@ function deleteImage(id){
 if(fbEnabled){
   syncStatus.textContent = 'Live';
   dbRef.limitToLast(300).on('value', snap=>{
-    const val = snap.val() || {};
-    const list = Object.keys(val).map(id=>Object.assign({id}, val[id])).sort((a,b)=>a.ts-b.ts);
+    // snap.forEach walks children in Firebase's own server-side order (matches push key
+    // order = true chronological arrival time), so we never re-sort by a client-side
+    // timestamp — that avoids messages jumping out of order due to device clock drift.
+    const list = [];
+    snap.forEach(child=>{
+      list.push(Object.assign({id: child.key}, child.val()));
+    });
     renderMessages(list);
   });
 } else {
@@ -744,12 +749,13 @@ function sendMessage(){
     nick: getNickname() || randomGuestName(),
     text: val || '',
     image: pendingImage || null,
-    ts: Date.now()
+    ts: fbEnabled ? firebase.database.ServerValue.TIMESTAMP : Date.now()
   };
   if(fbEnabled){
     dbRef.push(msg);
   } else {
     const list = loadLocalMessages();
+    msg.ts = Date.now();
     msg.id = 'local_' + msg.ts + '_' + Math.random().toString(36).slice(2,7);
     list.push(msg);
     saveLocalMessages(list);
