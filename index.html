@@ -683,7 +683,6 @@ function saveLocalMessages(arr){
 }
 
 function renderMessages(list){
-  const wasNearBottom = (messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight) < 120;
   messagesEl.innerHTML = '<span class="channel-hash"># GLOBAL</span>';
   for(const m of list){
     const div = document.createElement('div');
@@ -698,7 +697,7 @@ function renderMessages(list){
       const img = document.createElement('img');
       img.src = m.image;
       img.addEventListener('load', ()=>{
-        if(wasNearBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
       });
       const del = document.createElement('div');
       del.className = 'msg-image-del';
@@ -712,7 +711,8 @@ function renderMessages(list){
     }
     messagesEl.appendChild(div);
   }
-  if(wasNearBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  requestAnimationFrame(()=>{ messagesEl.scrollTop = messagesEl.scrollHeight; });
 }
 
 function deleteImage(id){
