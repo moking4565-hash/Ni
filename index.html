@@ -388,7 +388,7 @@
     <span class="quote-sign">— Clan Nosferatu</span>
   </div>
 
-  <div class="hint">ANY PASSWORD GRANTS ENTRY // DEMO TERMINAL</div>
+  <div class="hint">SHROUDNET SECURE TERMINAL // UNAUTHORIZED ACCESS PROHIBITED</div>
 </div>
 
 <!-- ============ PAGE 2 ============ -->
@@ -604,10 +604,13 @@ const pageChat = document.getElementById('page-chat');
 accessBtn.addEventListener('click', tryAccess);
 pwInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryAccess(); });
 
+const ACCESS_PASSWORD = "Tetris1526+Nosf";
+
 function tryAccess(){
-  if(pwInput.value.trim().length === 0){
+  if(pwInput.value.trim() !== ACCESS_PASSWORD){
     loginError.classList.add('show');
     pageLogin.style.animation = 'shake .4s';
+    setTimeout(()=>{ pageLogin.style.animation = ''; }, 420);
     setTimeout(()=> loginError.classList.remove('show'), 1600);
     return;
   }
