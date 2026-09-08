@@ -444,6 +444,18 @@
     font-size:11px; line-height:16px; text-align:center; cursor:pointer;
   }
   .db-img-del:hover{ border-color:#ff003c; color:#ff003c; }
+  .db-img-resize{
+    position:absolute; right:-6px; bottom:-6px; width:14px; height:14px;
+    background:#000; border:1px solid var(--neon); cursor:nwse-resize; touch-action:none;
+  }
+  .db-img-resize:hover{ background:rgba(0,255,65,0.35); }
+
+  .db-file-toolbar-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .db-delete-file-btn{
+    border:1px solid var(--mid-green); color:var(--neon-dim); background:transparent;
+    padding:6px 10px; font-size:10px; letter-spacing:1px; cursor:pointer; white-space:nowrap;
+  }
+  .db-delete-file-btn:hover{ border-color:#ff003c; color:#ff003c; }
 
   .db-editor{
     flex:1; min-width:0; min-height:0; background:transparent; border:none; outline:none; resize:none;
@@ -510,7 +522,10 @@
         <div class="db-file-view" id="db-file-view" style="display:none;">
           <div class="db-file-toolbar">
             <span class="db-file-toolbar-name" id="db-file-toolbar-name"></span>
-            <label class="db-upload-btn">+ IMAGE<input type="file" id="db-img-input" accept="image/*" hidden></label>
+            <div class="db-file-toolbar-actions">
+              <label class="db-upload-btn">+ IMAGE<input type="file" id="db-img-input" accept="image/*" hidden></label>
+              <button class="db-delete-file-btn" id="db-delete-file-btn" title="Delete this file">🗑 DELETE</button>
+            </div>
           </div>
           <div class="db-board" id="db-board">
             <div class="db-board-hint" id="db-board-hint">DRAG IMAGES TO ARRANGE</div>
@@ -1171,6 +1186,7 @@ const dbEditor = document.getElementById('db-editor');
 const dbEmptyHint = document.getElementById('db-empty-hint');
 const dbFileView = document.getElementById('db-file-view');
 const dbFileToolbarName = document.getElementById('db-file-toolbar-name');
+const dbDeleteFileBtn = document.getElementById('db-delete-file-btn');
 
 const DB_FILES_LOCAL_KEY = 'shroudnet_db_files';
 let currentDbFileId = null;
@@ -1294,6 +1310,14 @@ function renameDbFile(id){
   }
 }
 dbNewFileBtn.addEventListener('click', createDbFile);
+dbDeleteFileBtn.addEventListener('click', ()=>{
+  if(!currentDbFileId) return;
+  const f = dbFilesCache.find(x=>x.id===currentDbFileId);
+  const name = f ? f.name : 'this file';
+  if(confirm('Delete "' + name + '"? This cannot be undone.')){
+    deleteDbFile(currentDbFileId);
+  }
+});
 let dbSaveTimer = null;
 dbEditor.addEventListener('input', ()=>{
   if(!currentDbFileId) return;
@@ -1339,16 +1363,23 @@ function renderDbBoard(){
     el.className = 'db-img-item';
     el.style.left = img.x + '%';
     el.style.top = img.y + '%';
+    el.style.width = (img.w || 20) + '%';
     const imageEl = document.createElement('img');
     imageEl.src = img.src;
     const del = document.createElement('div');
     del.className = 'db-img-del';
     del.textContent = '\u2715';
     del.title = 'Delete image';
+    del.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
     del.addEventListener('click', (e)=>{ e.stopPropagation(); deleteDbImage(img.id); });
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'db-img-resize';
+    resizeHandle.title = 'Drag to resize';
     el.appendChild(imageEl);
     el.appendChild(del);
+    el.appendChild(resizeHandle);
     makeDbImageDraggable(el, img.id);
+    makeDbImageResizable(resizeHandle, el, img.id);
     dbBoard.appendChild(el);
   });
 }
@@ -1367,6 +1398,45 @@ function deleteDbImage(id){
       renderDbBoard();
     }
   }
+}
+function makeDbImageResizable(handle, el, id){
+  let resizing = false, startX = 0, startWidthPx = 0;
+  handle.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    resizing = true;
+    isDbDragging = true;
+    handle.setPointerCapture(e.pointerId);
+    startX = e.clientX;
+    startWidthPx = el.getBoundingClientRect().width;
+  });
+  handle.addEventListener('pointermove', (e)=>{
+    if(!resizing) return;
+    e.stopPropagation();
+    const boardRect = dbBoard.getBoundingClientRect();
+    const dx = e.clientX - startX;
+    const newWidthPx = Math.max(28, Math.min(startWidthPx + dx, boardRect.width*0.9));
+    el.style.width = (newWidthPx / boardRect.width * 100) + '%';
+  });
+  function endResize(e){
+    if(!resizing) return;
+    if(e) e.stopPropagation();
+    resizing = false;
+    isDbDragging = false;
+    if(!currentDbFileId) return;
+    const w = parseFloat(el.style.width);
+    if(fbEnabled){
+      dbFilesRef.child(currentDbFileId).child('images').child(id).update({ w });
+    } else {
+      const files = loadLocalDbFiles();
+      const f = files.find(x=>x.id===currentDbFileId);
+      if(f && f.images){
+        const img = f.images.find(i=>i.id===id);
+        if(img){ img.w = w; saveLocalDbFiles(files); dbFilesCache = files; }
+      }
+    }
+  }
+  handle.addEventListener('pointerup', endResize);
+  handle.addEventListener('pointercancel', endResize);
 }
 function makeDbImageDraggable(el, id){
   let dragging = false, startX=0, startY=0, origLeftPx=0, origTopPx=0;
