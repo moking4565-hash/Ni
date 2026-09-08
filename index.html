@@ -350,6 +350,107 @@
     50%{box-shadow:0 0 22px rgba(0,255,65,0.8);}
   }
 
+  /* ===== DATABASE TAB / PANEL ===== */
+  .db-tab{
+    position:fixed; left:0; top:50%; transform:translateY(-50%);
+    writing-mode:vertical-rl; text-orientation:mixed;
+    background:rgba(0,15,0,0.85); border:1px solid var(--mid-green); border-left:none;
+    color:var(--neon-dim); padding:16px 9px; font-size:11px; letter-spacing:3px;
+    cursor:pointer; z-index:17; transition:all .2s;
+  }
+  .db-tab:hover{color:var(--neon); border-color:var(--neon); box-shadow:0 0 12px rgba(0,255,65,0.3);}
+
+  .db-panel{
+    position:fixed; top:0; left:0; height:100%; width:380px; max-width:90vw;
+    background:rgba(0,8,0,0.97); border-right:1px solid var(--mid-green);
+    transform:translateX(-100%); transition:transform .35s ease;
+    z-index:18; display:flex; flex-direction:column;
+    box-shadow:0 0 30px rgba(0,0,0,0.85);
+  }
+  .db-panel.open{ transform:translateX(0); }
+  .db-panel-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 14px; border-bottom:1px solid var(--mid-green); flex-shrink:0; gap:8px;
+  }
+  .db-panel-title{ font-size:11px; letter-spacing:3px; color:var(--neon-dim); }
+  #db-close-btn{
+    background:transparent; border:1px solid var(--mid-green); color:var(--neon-dim);
+    width:26px; height:26px; cursor:pointer; flex-shrink:0;
+  }
+  #db-close-btn:hover{ color:var(--neon); border-color:var(--neon); }
+
+  .db-panel-body{ flex:1; display:flex; min-height:0; overflow:hidden; }
+
+  .db-files-sidebar{
+    width:130px; flex-shrink:0; border-right:1px solid var(--mid-green); padding:10px;
+    overflow-y:auto; display:flex; flex-direction:column; gap:6px;
+  }
+  #db-new-file-btn{
+    border:1px solid var(--neon); color:var(--neon); background:transparent;
+    padding:7px; font-size:10px; letter-spacing:1px; cursor:pointer;
+  }
+  #db-new-file-btn:hover{ background:rgba(0,255,65,0.1); }
+  .db-file-item{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:5px 6px; font-size:11px; color:var(--neon-dim); cursor:pointer;
+    border-left:2px solid transparent;
+  }
+  .db-file-item:hover, .db-file-item.active{ color:var(--neon); border-left-color:var(--neon); background:rgba(0,255,65,0.06); }
+  .db-file-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .db-file-del{ color:var(--mid-green); font-size:10px; flex-shrink:0; margin-left:4px; }
+  .db-file-del:hover{ color:#ff003c; }
+
+  .db-main{ flex:1; display:flex; min-width:0; min-height:0; }
+  .db-empty-hint{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    color:var(--mid-green); font-size:10px; letter-spacing:2px; text-align:center; padding:20px;
+  }
+  .db-file-view{ flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; }
+  .db-file-toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; border-bottom:1px solid var(--mid-green); flex-shrink:0; gap:8px;
+  }
+  .db-file-toolbar-name{
+    font-size:11px; color:var(--neon); letter-spacing:1px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap;
+  }
+  .db-upload-btn{
+    display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+    border:1px solid var(--neon); color:var(--neon); padding:6px 12px;
+    font-size:10px; letter-spacing:2px; cursor:pointer;
+  }
+  .db-upload-btn:hover{ background:rgba(0,255,65,0.1); }
+  .db-board{
+    height:150px; flex-shrink:0; min-height:0; position:relative; border-bottom:1px solid var(--mid-green);
+    background:
+      linear-gradient(rgba(0,255,65,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,65,0.05) 1px, transparent 1px);
+    background-size:22px 22px;
+    overflow:hidden;
+  }
+  .db-board-hint{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    color:var(--mid-green); font-size:10px; letter-spacing:2px; pointer-events:none;
+  }
+  .db-img-item{
+    position:absolute; width:64px; cursor:grab; touch-action:none;
+    border:1px solid var(--mid-green); background:#000;
+  }
+  .db-img-item.dragging{ cursor:grabbing; border-color:var(--neon); z-index:5; box-shadow:0 0 14px rgba(0,255,65,0.5); }
+  .db-img-item img{ display:block; width:100%; height:auto; pointer-events:none; }
+  .db-img-del{
+    position:absolute; top:-8px; right:-8px; width:18px; height:18px;
+    background:#000; border:1px solid var(--neon); color:var(--neon);
+    font-size:11px; line-height:16px; text-align:center; cursor:pointer;
+  }
+  .db-img-del:hover{ border-color:#ff003c; color:#ff003c; }
+
+  .db-editor{
+    flex:1; min-width:0; min-height:0; background:transparent; border:none; outline:none; resize:none;
+    color:var(--neon); font-family:inherit; font-size:12px; padding:14px; line-height:1.6;
+  }
+  .db-editor::placeholder{ color:var(--mid-green); }
+
   @media (max-width:900px){
     .side-panel{width:150px; font-size:10px;}
     .side-panel.right{display:none;}
@@ -393,6 +494,33 @@
 
 <!-- ============ PAGE 2 ============ -->
 <div class="page" id="page-chat">
+  <div class="db-tab" id="db-tab">БАЗА ДАННЫХ</div>
+  <div class="db-panel" id="db-panel">
+    <div class="db-panel-header">
+      <span class="db-panel-title">ARCHIVE FILES</span>
+      <button id="db-close-btn">✕</button>
+    </div>
+    <div class="db-panel-body">
+      <div class="db-files-sidebar">
+        <button id="db-new-file-btn">+ NEW FILE</button>
+        <div id="db-files-list"></div>
+      </div>
+      <div class="db-main" id="db-main">
+        <div class="db-empty-hint" id="db-empty-hint">SELECT OR CREATE A FILE</div>
+        <div class="db-file-view" id="db-file-view" style="display:none;">
+          <div class="db-file-toolbar">
+            <span class="db-file-toolbar-name" id="db-file-toolbar-name"></span>
+            <label class="db-upload-btn">+ IMAGE<input type="file" id="db-img-input" accept="image/*" hidden></label>
+          </div>
+          <div class="db-board" id="db-board">
+            <div class="db-board-hint" id="db-board-hint">DRAG IMAGES TO ARRANGE</div>
+          </div>
+          <textarea class="db-editor" id="db-editor" placeholder="Write here..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="topbar">
     <div>
       <div class="topbar-title">SHROUDNET</div>
@@ -1029,6 +1157,315 @@ function toggleSound(){
   }
 }
 soundBtn.addEventListener('click', toggleSound);
+
+/* ================= DATABASE PANEL (files with attached images — synced via Firebase, local fallback) ================= */
+const dbTab = document.getElementById('db-tab');
+const dbPanel = document.getElementById('db-panel');
+const dbCloseBtn = document.getElementById('db-close-btn');
+const dbBoard = document.getElementById('db-board');
+const dbBoardHint = document.getElementById('db-board-hint');
+const dbImgInput = document.getElementById('db-img-input');
+const dbFilesList = document.getElementById('db-files-list');
+const dbNewFileBtn = document.getElementById('db-new-file-btn');
+const dbEditor = document.getElementById('db-editor');
+const dbEmptyHint = document.getElementById('db-empty-hint');
+const dbFileView = document.getElementById('db-file-view');
+const dbFileToolbarName = document.getElementById('db-file-toolbar-name');
+
+const DB_FILES_LOCAL_KEY = 'shroudnet_db_files';
+let currentDbFileId = null;
+let dbFilesCache = [];
+let currentFileImagesCache = [];
+let isDbDragging = false;
+let currentFileImagesRef = null;
+
+let dbFilesRef = null;
+if(fbEnabled){
+  dbFilesRef = firebase.database().ref('shroudnet/database/files');
+}
+
+function loadLocalDbFiles(){ try{ return JSON.parse(localStorage.getItem(DB_FILES_LOCAL_KEY)||'[]'); }catch(e){ return []; } }
+function saveLocalDbFiles(arr){ localStorage.setItem(DB_FILES_LOCAL_KEY, JSON.stringify(arr)); }
+
+dbTab.addEventListener('click', ()=> dbPanel.classList.add('open'));
+dbCloseBtn.addEventListener('click', ()=> dbPanel.classList.remove('open'));
+
+/* ---- FILES ---- */
+function dbFilesChanged(list){
+  dbFilesCache = list;
+  renderDbFilesList();
+  if(currentDbFileId){
+    const f = list.find(x=>x.id===currentDbFileId);
+    if(!f){
+      closeDbFileView();
+    } else {
+      dbFileToolbarName.textContent = f.name;
+      if(document.activeElement !== dbEditor){
+        dbEditor.value = f.content || '';
+      }
+    }
+  }
+}
+function renderDbFilesList(){
+  dbFilesList.innerHTML = '';
+  dbFilesCache.forEach(f=>{
+    const row = document.createElement('div');
+    row.className = 'db-file-item' + (f.id===currentDbFileId ? ' active' : '');
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'db-file-name';
+    nameSpan.textContent = f.name;
+    nameSpan.title = 'Click to open, double-click to rename';
+    nameSpan.addEventListener('click', ()=> openDbFile(f.id));
+    nameSpan.addEventListener('dblclick', ()=> renameDbFile(f.id));
+    const del = document.createElement('span');
+    del.className = 'db-file-del';
+    del.textContent = '\u2715';
+    del.title = 'Delete file';
+    del.addEventListener('click', (e)=>{ e.stopPropagation(); deleteDbFile(f.id); });
+    row.appendChild(nameSpan);
+    row.appendChild(del);
+    dbFilesList.appendChild(row);
+  });
+}
+function closeDbFileView(){
+  currentDbFileId = null;
+  detachFileImagesListener();
+  currentFileImagesCache = [];
+  dbEditor.value = '';
+  dbEmptyHint.style.display = 'flex';
+  dbFileView.style.display = 'none';
+  renderDbFilesList();
+}
+function openDbFile(id){
+  const f = dbFilesCache.find(x=>x.id===id);
+  if(!f) return;
+  currentDbFileId = id;
+  dbFileToolbarName.textContent = f.name;
+  dbEditor.value = f.content || '';
+  dbEmptyHint.style.display = 'none';
+  dbFileView.style.display = 'flex';
+  attachFileImagesListener(id);
+  renderDbFilesList();
+}
+function createDbFile(){
+  const name = 'file_' + (dbFilesCache.length+1) + '.txt';
+  if(fbEnabled){
+    const ref = dbFilesRef.push({ name, content: '' });
+    openDbFile(ref.key);
+  } else {
+    const files = loadLocalDbFiles();
+    const f = { id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), name, content:'', images:[] };
+    files.push(f);
+    saveLocalDbFiles(files);
+    dbFilesCache = files;
+    openDbFile(f.id);
+  }
+  renderDbFilesList();
+  dbEditor.focus();
+}
+function deleteDbFile(id){
+  if(fbEnabled){
+    dbFilesRef.child(id).remove();
+  } else {
+    const files = loadLocalDbFiles().filter(f=>f.id!==id);
+    saveLocalDbFiles(files);
+    dbFilesCache = files;
+  }
+  if(currentDbFileId===id){
+    closeDbFileView();
+  } else {
+    renderDbFilesList();
+  }
+}
+function renameDbFile(id){
+  const f = dbFilesCache.find(x=>x.id===id);
+  if(!f) return;
+  const newName = prompt('Rename file:', f.name);
+  if(newName && newName.trim()){
+    const name = newName.trim().slice(0,40);
+    if(fbEnabled){
+      dbFilesRef.child(id).update({ name });
+    } else {
+      const files = loadLocalDbFiles();
+      const ff = files.find(x=>x.id===id);
+      if(ff){ ff.name = name; saveLocalDbFiles(files); dbFilesCache = files; renderDbFilesList(); }
+    }
+    if(id===currentDbFileId) dbFileToolbarName.textContent = name;
+  }
+}
+dbNewFileBtn.addEventListener('click', createDbFile);
+let dbSaveTimer = null;
+dbEditor.addEventListener('input', ()=>{
+  if(!currentDbFileId) return;
+  clearTimeout(dbSaveTimer);
+  dbSaveTimer = setTimeout(()=>{
+    const content = dbEditor.value;
+    if(fbEnabled){
+      dbFilesRef.child(currentDbFileId).update({ content });
+    } else {
+      const files = loadLocalDbFiles();
+      const f = files.find(x=>x.id===currentDbFileId);
+      if(f){ f.content = content; saveLocalDbFiles(files); dbFilesCache = files; }
+    }
+  }, 400);
+});
+
+/* ---- IMAGES ATTACHED TO THE CURRENTLY OPEN FILE ---- */
+function detachFileImagesListener(){
+  if(currentFileImagesRef){ currentFileImagesRef.off(); currentFileImagesRef = null; }
+}
+function attachFileImagesListener(fileId){
+  detachFileImagesListener();
+  if(fbEnabled){
+    currentFileImagesRef = dbFilesRef.child(fileId).child('images');
+    currentFileImagesRef.on('value', snap=>{
+      const list = [];
+      snap.forEach(c=> list.push(Object.assign({id:c.key}, c.val())));
+      currentFileImagesCache = list;
+      if(!isDbDragging) renderDbBoard();
+    });
+  } else {
+    const f = dbFilesCache.find(x=>x.id===fileId);
+    currentFileImagesCache = (f && f.images) || [];
+    renderDbBoard();
+  }
+}
+function renderDbBoard(){
+  dbBoard.innerHTML = '';
+  dbBoardHint.style.display = currentFileImagesCache.length ? 'none' : 'block';
+  dbBoard.appendChild(dbBoardHint);
+  currentFileImagesCache.forEach(img=>{
+    const el = document.createElement('div');
+    el.className = 'db-img-item';
+    el.style.left = img.x + '%';
+    el.style.top = img.y + '%';
+    const imageEl = document.createElement('img');
+    imageEl.src = img.src;
+    const del = document.createElement('div');
+    del.className = 'db-img-del';
+    del.textContent = '\u2715';
+    del.title = 'Delete image';
+    del.addEventListener('click', (e)=>{ e.stopPropagation(); deleteDbImage(img.id); });
+    el.appendChild(imageEl);
+    el.appendChild(del);
+    makeDbImageDraggable(el, img.id);
+    dbBoard.appendChild(el);
+  });
+}
+function deleteDbImage(id){
+  if(!currentDbFileId) return;
+  if(fbEnabled){
+    dbFilesRef.child(currentDbFileId).child('images').child(id).remove();
+  } else {
+    const files = loadLocalDbFiles();
+    const f = files.find(x=>x.id===currentDbFileId);
+    if(f && f.images){
+      f.images = f.images.filter(i=>i.id!==id);
+      saveLocalDbFiles(files);
+      dbFilesCache = files;
+      currentFileImagesCache = f.images;
+      renderDbBoard();
+    }
+  }
+}
+function makeDbImageDraggable(el, id){
+  let dragging = false, startX=0, startY=0, origLeftPx=0, origTopPx=0;
+  el.addEventListener('pointerdown', (e)=>{
+    dragging = true;
+    isDbDragging = true;
+    el.setPointerCapture(e.pointerId);
+    el.classList.add('dragging');
+    startX = e.clientX; startY = e.clientY;
+    const rect = el.getBoundingClientRect();
+    const boardRect = dbBoard.getBoundingClientRect();
+    origLeftPx = rect.left - boardRect.left;
+    origTopPx = rect.top - boardRect.top;
+  });
+  el.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    const boardRect = dbBoard.getBoundingClientRect();
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    let newLeft = origLeftPx + dx, newTop = origTopPx + dy;
+    newLeft = Math.max(0, Math.min(newLeft, boardRect.width - el.offsetWidth));
+    newTop = Math.max(0, Math.min(newTop, boardRect.height - el.offsetHeight));
+    el.style.left = (newLeft / boardRect.width * 100) + '%';
+    el.style.top = (newTop / boardRect.height * 100) + '%';
+  });
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    isDbDragging = false;
+    el.classList.remove('dragging');
+    if(!currentDbFileId) return;
+    const x = parseFloat(el.style.left), y = parseFloat(el.style.top);
+    if(fbEnabled){
+      dbFilesRef.child(currentDbFileId).child('images').child(id).update({ x, y });
+    } else {
+      const files = loadLocalDbFiles();
+      const f = files.find(x2=>x2.id===currentDbFileId);
+      if(f && f.images){
+        const img = f.images.find(i=>i.id===id);
+        if(img){ img.x = x; img.y = y; saveLocalDbFiles(files); dbFilesCache = files; }
+      }
+    }
+  }
+  el.addEventListener('pointerup', endDrag);
+  el.addEventListener('pointercancel', endDrag);
+}
+dbImgInput.addEventListener('change', ()=>{
+  const file = dbImgInput.files[0];
+  if(!file || !file.type.startsWith('image/') || !currentDbFileId) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const tempImg = new Image();
+    tempImg.onload = ()=>{
+      const maxDim = 320;
+      let w = tempImg.width, h = tempImg.height;
+      if(w > maxDim || h > maxDim){
+        const scale = maxDim / Math.max(w,h);
+        w = Math.round(w*scale); h = Math.round(h*scale);
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(tempImg, 0, 0, w, h);
+      const dataUrl = c.toDataURL('image/jpeg', 0.78);
+      const newImg = { src: dataUrl, x: 8 + Math.random()*40, y: 8 + Math.random()*35 };
+      if(fbEnabled){
+        dbFilesRef.child(currentDbFileId).child('images').push(newImg);
+      } else {
+        const files = loadLocalDbFiles();
+        const f = files.find(x=>x.id===currentDbFileId);
+        if(f){
+          if(!f.images) f.images = [];
+          newImg.id = 'img_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+          f.images.push(newImg);
+          saveLocalDbFiles(files);
+          dbFilesCache = files;
+          currentFileImagesCache = f.images;
+          renderDbBoard();
+        }
+      }
+    };
+    tempImg.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+  dbImgInput.value = '';
+});
+
+if(fbEnabled){
+  dbFilesRef.on('value', snap=>{
+    const list = [];
+    snap.forEach(c=>{
+      const v = c.val() || {};
+      list.push({ id:c.key, name:v.name, content:v.content });
+    });
+    dbFilesChanged(list);
+  });
+} else {
+  dbFilesCache = loadLocalDbFiles();
+  renderDbFilesList();
+}
+
 
 </script>
 </body>
