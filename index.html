@@ -269,7 +269,41 @@
   .msg-user{color:var(--neon); font-weight:bold; margin-right:6px;}
   .msg-user.you{color:#8fffb0;}
   .msg-text{color:#8fce9a; word-break:break-word;}
-  .channel-hash{color:var(--neon-dim); letter-spacing:2px; font-size:12px; margin-bottom:14px; display:block;}
+  .channel-bar{
+    display:flex; align-items:center; gap:10px; padding:14px 24px 0 24px; flex-shrink:0;
+  }
+  .channel-hash{color:var(--neon-dim); letter-spacing:2px; font-size:12px;}
+  .hidden-channel-dot{
+    color:rgba(0,59,0,0.55); font-size:11px; cursor:pointer; user-select:none;
+    transition:color .3s; margin-left:auto;
+  }
+  .hidden-channel-dot:hover{ color:rgba(0,255,65,0.55); }
+
+  .secret-modal{
+    position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:40;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .secret-modal.show{ opacity:1; pointer-events:all; }
+  .secret-modal-box{
+    background:rgba(0,10,0,0.95); border:1px solid var(--mid-green); padding:26px 30px;
+    width:280px; text-align:center; box-shadow:0 0 30px rgba(0,255,65,0.15);
+  }
+  .secret-modal-label{ font-size:10px; letter-spacing:3px; color:var(--neon-dim); margin-bottom:12px; }
+  #secret-pw-input{
+    width:100%; background:rgba(0,20,0,0.5); border:1px solid var(--mid-green); color:var(--neon);
+    font-family:inherit; padding:10px; text-align:center; letter-spacing:4px; outline:none; margin-bottom:12px;
+  }
+  #secret-pw-input:focus{ border-color:var(--neon); box-shadow:0 0 10px rgba(0,255,65,0.3) inset; }
+  .secret-modal-actions{ display:flex; gap:8px; justify-content:center; }
+  .secret-modal-actions button{
+    border:1px solid var(--mid-green); color:var(--neon-dim); background:transparent;
+    padding:8px 16px; font-size:11px; letter-spacing:2px; cursor:pointer; font-family:inherit;
+  }
+  #secret-pw-submit{ border-color:var(--neon); color:var(--neon); }
+  .secret-modal-actions button:hover{ background:rgba(0,255,65,0.1); }
+  .secret-modal-error{ font-size:10px; color:#ff1919; margin-top:10px; height:12px; opacity:0; transition:opacity .3s; }
+  .secret-modal-error.show{ opacity:1; }
 
   .msg-image-wrap{
     position:relative; display:inline-block; margin:6px 0 10px 0;
@@ -348,6 +382,31 @@
   @keyframes soundPulse{
     0%,100%{box-shadow:0 0 12px rgba(0,255,65,0.4);}
     50%{box-shadow:0 0 22px rgba(0,255,65,0.8);}
+  }
+
+  /* ===== KICK / INTRUDER OVERLAY ===== */
+  .kick-overlay{
+    position:fixed; inset:0; background:#000; z-index:60;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .5s;
+  }
+  .kick-overlay.show{ opacity:1; pointer-events:all; }
+  .kick-text{
+    font-family:'Times New Roman',serif; font-size:32px; letter-spacing:6px; color:#ff1919;
+    text-shadow:0 0 20px #ff1919, 0 0 55px #4a0000;
+    animation:kickFlicker 1.7s infinite;
+  }
+  .kick-sub{
+    margin-top:16px; font-size:11px; letter-spacing:5px; color:#7a0000;
+  }
+  @keyframes kickFlicker{
+    0%,100%{opacity:1;} 8%{opacity:.25;} 10%{opacity:1;} 42%{opacity:1;} 44%{opacity:.12;} 46%{opacity:1;}
+  }
+  .hard-glitch{ animation:hardGlitchFlash .09s steps(1) infinite; }
+  @keyframes hardGlitchFlash{
+    0%{filter:invert(0) brightness(1);}
+    50%{filter:invert(1) brightness(1.6) hue-rotate(30deg);}
+    100%{filter:invert(0) brightness(1);}
   }
 
   /* ===== DATABASE TAB / PANEL ===== */
@@ -478,6 +537,23 @@
 
 <button class="sound-btn" id="sound-toggle" title="Ambient sound">🔇</button>
 
+<div class="kick-overlay" id="kick-overlay">
+  <div class="kick-text">CONNECTION TERMINATED</div>
+  <div class="kick-sub">THEY SAW YOU LOOKING</div>
+</div>
+
+<div class="secret-modal" id="secret-modal">
+  <div class="secret-modal-box">
+    <div class="secret-modal-label">ENTER CHANNEL KEY</div>
+    <input type="password" id="secret-pw-input" autocomplete="off" spellcheck="false">
+    <div class="secret-modal-actions">
+      <button id="secret-pw-cancel">CANCEL</button>
+      <button id="secret-pw-submit">UNLOCK</button>
+    </div>
+    <div class="secret-modal-error" id="secret-modal-error">INVALID KEY</div>
+  </div>
+</div>
+
 <!-- ============ PAGE 1 ============ -->
 <div class="page active" id="page-login">
   <div class="boot-text" id="boot-text"></div>
@@ -557,9 +633,11 @@
         <canvas id="chat-logo-canvas" width="150" height="150"></canvas>
         <div class="center-logo-caption">SHROUDNET SIGIL</div>
       </div>
-      <div class="messages" id="messages">
-        <span class="channel-hash"># GLOBAL</span>
+      <div class="channel-bar">
+        <span class="channel-hash" id="channel-hash"># GLOBAL</span>
+        <span class="hidden-channel-dot" id="hidden-channel-dot" title="">◈</span>
       </div>
+      <div class="messages" id="messages"></div>
       <div class="attach-preview" id="attach-preview"></div>
       <div class="msg-input-bar">
         <input type="text" id="msg-input" placeholder="Type your message, child..." autocomplete="off">
@@ -817,13 +895,12 @@ accessBtn.addEventListener('click', tryAccess);
 pwInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryAccess(); });
 
 const ACCESS_PASSWORD = "Tetris1526+Nosf";
+let intruderTriggered = false;
 
 function tryAccess(){
+  if(intruderTriggered) return;
   if(pwInput.value.trim() !== ACCESS_PASSWORD){
-    loginError.classList.add('show');
-    pageLogin.style.animation = 'shake .4s';
-    setTimeout(()=>{ pageLogin.style.animation = ''; }, 420);
-    setTimeout(()=> loginError.classList.remove('show'), 1600);
+    triggerIntruderSequence();
     return;
   }
   loginError.classList.remove('show');
@@ -833,6 +910,36 @@ function tryAccess(){
     pageLogin.classList.remove('active');
     pageChat.classList.add('active');
   }, 900);
+}
+
+function triggerIntruderSequence(){
+  intruderTriggered = true;
+  loginError.textContent = "ACCESS DENIED — INTRUSION LOGGED";
+  loginError.classList.add('show');
+  pageLogin.style.animation = 'shake .4s';
+  setTimeout(()=>{ pageLogin.style.animation = ''; }, 420);
+
+  pwInput.disabled = true;
+  accessBtn.disabled = true;
+  accessBtn.textContent = "...";
+
+  // the mask opens into a wide, hungry grin
+  loginLogo.setColorMode('red');
+  loginLogo.retarget(buildSmileTargets(340));
+
+  setTimeout(startKickSequence, 1500);
+}
+
+function startKickSequence(){
+  clearInterval(matrixInterval);
+  if(typeof audioCtx !== 'undefined' && audioCtx && soundOn){ toggleSound(); }
+
+  document.body.classList.add('hard-glitch');
+  setTimeout(()=>{
+    document.body.classList.remove('hard-glitch');
+    document.getElementById('kick-overlay').classList.add('show');
+    try{ window.close(); }catch(e){}
+  }, 650);
 }
 
 document.getElementById('logout-btn').addEventListener('click', ()=>{
@@ -878,8 +985,13 @@ const sendBtn = document.getElementById('send-btn');
 const imgInput = document.getElementById('img-input');
 const attachPreview = document.getElementById('attach-preview');
 const syncStatus = document.getElementById('sync-status');
+const channelHashEl = document.getElementById('channel-hash');
+const hiddenChannelDot = document.getElementById('hidden-channel-dot');
 
-const LOCAL_KEY = 'shroudnet_local_messages';
+const LOCAL_KEY_GLOBAL = 'shroudnet_local_messages';
+const LOCAL_KEY_HIDDEN = 'shroudnet_local_messages_hidden';
+let currentChannel = 'global';
+let currentLocalKey = LOCAL_KEY_GLOBAL;
 let pendingImage = null; // base64 dataURL of image staged for the next message
 
 function timeStamp(ts){
@@ -891,14 +1003,14 @@ function escapeHtml(s){
 }
 
 function loadLocalMessages(){
-  try{ return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }catch(e){ return []; }
+  try{ return JSON.parse(localStorage.getItem(currentLocalKey) || '[]'); }catch(e){ return []; }
 }
 function saveLocalMessages(arr){
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(arr.slice(-300)));
+  localStorage.setItem(currentLocalKey, JSON.stringify(arr.slice(-300)));
 }
 
 function renderMessages(list){
-  messagesEl.innerHTML = '<span class="channel-hash"># GLOBAL</span>';
+  messagesEl.innerHTML = '';
   for(const m of list){
     const div = document.createElement('div');
     div.className = 'msg-line';
@@ -940,21 +1052,43 @@ function deleteImage(id){
   }
 }
 
-if(fbEnabled){
-  syncStatus.textContent = 'Live';
-  dbRef.limitToLast(300).on('value', snap=>{
-    // snap.forEach walks children in Firebase's own server-side order (matches push key
-    // order = true chronological arrival time), so we never re-sort by a client-side
-    // timestamp — that avoids messages jumping out of order due to device clock drift.
-    const list = [];
-    snap.forEach(child=>{
-      list.push(Object.assign({id: child.key}, child.val()));
+function attachChannelListener(){
+  if(fbEnabled){
+    dbRef.limitToLast(300).on('value', snap=>{
+      // snap.forEach walks children in Firebase's own server-side order (matches push key
+      // order = true chronological arrival time), so we never re-sort by a client-side
+      // timestamp — that avoids messages jumping out of order due to device clock drift.
+      const list = [];
+      snap.forEach(child=>{
+        list.push(Object.assign({id: child.key}, child.val()));
+      });
+      renderMessages(list);
     });
-    renderMessages(list);
-  });
-} else {
-  syncStatus.textContent = 'Local only';
-  renderMessages(loadLocalMessages());
+  } else {
+    renderMessages(loadLocalMessages());
+  }
+}
+syncStatus.textContent = fbEnabled ? 'Live' : 'Local only';
+attachChannelListener();
+
+function switchToGlobalChannel(){
+  if(currentChannel==='global') return;
+  if(fbEnabled) dbRef.off();
+  currentChannel = 'global';
+  currentLocalKey = LOCAL_KEY_GLOBAL;
+  if(fbEnabled) dbRef = firebase.database().ref('shroudnet/global/messages');
+  channelHashEl.textContent = '# GLOBAL';
+  hiddenChannelDot.title = '';
+  attachChannelListener();
+}
+function switchToHiddenChannel(){
+  if(currentChannel==='hidden') return;
+  if(fbEnabled) dbRef.off();
+  currentChannel = 'hidden';
+  currentLocalKey = LOCAL_KEY_HIDDEN;
+  if(fbEnabled) dbRef = firebase.database().ref('shroudnet/hidden/messages');
+  channelHashEl.textContent = '# HIDDEN — ◄ click ◈ to return';
+  attachChannelListener();
 }
 
 function sendMessage(){
@@ -1604,6 +1738,43 @@ if(fbEnabled){
   dbFilesCache = loadLocalDbFiles();
   renderDbFilesList();
 }
+
+/* ================= HIDDEN CHANNEL (password-gated) ================= */
+const HIDDEN_CHANNEL_PASSWORD = "12896JGKL";
+const secretModal = document.getElementById('secret-modal');
+const secretPwInput = document.getElementById('secret-pw-input');
+const secretPwSubmit = document.getElementById('secret-pw-submit');
+const secretPwCancel = document.getElementById('secret-pw-cancel');
+const secretModalError = document.getElementById('secret-modal-error');
+
+hiddenChannelDot.addEventListener('click', ()=>{
+  if(currentChannel === 'hidden'){
+    switchToGlobalChannel();
+    return;
+  }
+  secretModal.classList.add('show');
+  secretPwInput.value = '';
+  secretModalError.classList.remove('show');
+  setTimeout(()=> secretPwInput.focus(), 50);
+});
+function closeSecretModal(){
+  secretModal.classList.remove('show');
+}
+function trySecretPassword(){
+  if(secretPwInput.value === HIDDEN_CHANNEL_PASSWORD){
+    closeSecretModal();
+    switchToHiddenChannel();
+  } else {
+    secretModalError.classList.add('show');
+    setTimeout(()=> secretModalError.classList.remove('show'), 1400);
+  }
+}
+secretPwSubmit.addEventListener('click', trySecretPassword);
+secretPwCancel.addEventListener('click', closeSecretModal);
+secretPwInput.addEventListener('keydown', e=>{
+  if(e.key==='Enter') trySecretPassword();
+  if(e.key==='Escape') closeSecretModal();
+});
 
 
 </script>
