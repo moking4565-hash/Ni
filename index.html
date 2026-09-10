@@ -479,14 +479,26 @@
     font-size:10px; letter-spacing:2px; cursor:pointer;
   }
   .db-upload-btn:hover{ background:rgba(0,255,65,0.1); }
+  .db-board-wrap{
+    position:relative; flex-shrink:0; border-bottom:1px solid var(--mid-green);
+  }
   .db-board{
-    height:150px; flex-shrink:0; min-height:0; position:relative; border-bottom:1px solid var(--mid-green);
+    height:150px; min-height:80px; max-height:70vh; position:relative;
     background:
       linear-gradient(rgba(0,255,65,0.05) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0,255,65,0.05) 1px, transparent 1px);
     background-size:22px 22px;
     overflow:hidden;
   }
+  .db-board-resize{
+    position:absolute; left:0; right:0; bottom:-4px; height:8px;
+    cursor:ns-resize; touch-action:none; z-index:3;
+  }
+  .db-board-resize::after{
+    content:''; position:absolute; left:50%; bottom:2px; transform:translateX(-50%);
+    width:36px; height:3px; background:var(--mid-green); border-radius:2px;
+  }
+  .db-board-resize:hover::after{ background:var(--neon); }
   .db-board-hint{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     color:var(--mid-green); font-size:10px; letter-spacing:2px; pointer-events:none;
@@ -603,8 +615,11 @@
               <button class="db-delete-file-btn" id="db-delete-file-btn" title="Delete this file">🗑 DELETE</button>
             </div>
           </div>
-          <div class="db-board" id="db-board">
-            <div class="db-board-hint" id="db-board-hint">DRAG IMAGES TO ARRANGE</div>
+          <div class="db-board-wrap">
+            <div class="db-board" id="db-board">
+              <div class="db-board-hint" id="db-board-hint">DRAG IMAGES TO ARRANGE</div>
+            </div>
+            <div class="db-board-resize" id="db-board-resize" title="Drag to resize this area"></div>
           </div>
           <textarea class="db-editor" id="db-editor" placeholder="Write here..."></textarea>
         </div>
@@ -894,12 +909,20 @@ const pageChat = document.getElementById('page-chat');
 accessBtn.addEventListener('click', tryAccess);
 pwInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryAccess(); });
 
-const ACCESS_PASSWORD = "Tetris1526+Nosf";
+/* Password is never stored as plaintext — only its SHA-256 hash lives in the source,
+   so viewing the page code doesn't reveal the actual key. */
+const ACCESS_PASSWORD_HASH = "38f551e1ea415eb7afb53a25b3ac24c25b311f950f7c6c9c66d9b2c04e4aed7e";
 let intruderTriggered = false;
 
-function tryAccess(){
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function tryAccess(){
   if(intruderTriggered) return;
-  if(pwInput.value.trim() !== ACCESS_PASSWORD){
+  const hash = await sha256Hex(pwInput.value.trim());
+  if(hash !== ACCESS_PASSWORD_HASH){
     triggerIntruderSequence();
     return;
   }
@@ -1381,6 +1404,7 @@ const dbTab = document.getElementById('db-tab');
 const dbPanel = document.getElementById('db-panel');
 const dbCloseBtn = document.getElementById('db-close-btn');
 const dbBoard = document.getElementById('db-board');
+const dbBoardResizeHandle = document.getElementById('db-board-resize');
 const dbBoardHint = document.getElementById('db-board-hint');
 const dbImgInput = document.getElementById('db-img-input');
 const dbFilesList = document.getElementById('db-files-list');
@@ -1407,6 +1431,38 @@ function loadLocalDbFiles(){ try{ return JSON.parse(localStorage.getItem(DB_FILE
 function saveLocalDbFiles(arr){ localStorage.setItem(DB_FILES_LOCAL_KEY, JSON.stringify(arr)); }
 
 dbTab.addEventListener('click', ()=> dbPanel.classList.add('open'));
+
+/* ---- resize the image board area itself (not individual images) ---- */
+const DB_BOARD_HEIGHT_KEY = 'shroudnet_db_board_height';
+(function initBoardHeight(){
+  const saved = parseInt(localStorage.getItem(DB_BOARD_HEIGHT_KEY), 10);
+  if(saved && saved >= 80) dbBoard.style.height = saved + 'px';
+})();
+(function(){
+  let resizing = false, startY = 0, startHeight = 0;
+  dbBoardResizeHandle.addEventListener('pointerdown', (e)=>{
+    resizing = true;
+    isDbDragging = true;
+    dbBoardResizeHandle.setPointerCapture(e.pointerId);
+    startY = e.clientY;
+    startHeight = dbBoard.getBoundingClientRect().height;
+  });
+  dbBoardResizeHandle.addEventListener('pointermove', (e)=>{
+    if(!resizing) return;
+    const dy = e.clientY - startY;
+    const maxH = window.innerHeight * 0.7;
+    const newH = Math.max(80, Math.min(startHeight + dy, maxH));
+    dbBoard.style.height = newH + 'px';
+  });
+  function endResize(){
+    if(!resizing) return;
+    resizing = false;
+    isDbDragging = false;
+    localStorage.setItem(DB_BOARD_HEIGHT_KEY, Math.round(dbBoard.getBoundingClientRect().height));
+  }
+  dbBoardResizeHandle.addEventListener('pointerup', endResize);
+  dbBoardResizeHandle.addEventListener('pointercancel', endResize);
+})();
 dbCloseBtn.addEventListener('click', ()=> dbPanel.classList.remove('open'));
 
 /* ---- FILES ---- */
@@ -1740,7 +1796,7 @@ if(fbEnabled){
 }
 
 /* ================= HIDDEN CHANNEL (password-gated) ================= */
-const HIDDEN_CHANNEL_PASSWORD = "12896JGKL";
+const HIDDEN_CHANNEL_HASH = "862516f8a4f13dae788a74cfd8ba0a6f6949043612d91d6cf1989b9cc9b3c7b7";
 const secretModal = document.getElementById('secret-modal');
 const secretPwInput = document.getElementById('secret-pw-input');
 const secretPwSubmit = document.getElementById('secret-pw-submit');
@@ -1760,8 +1816,9 @@ hiddenChannelDot.addEventListener('click', ()=>{
 function closeSecretModal(){
   secretModal.classList.remove('show');
 }
-function trySecretPassword(){
-  if(secretPwInput.value === HIDDEN_CHANNEL_PASSWORD){
+async function trySecretPassword(){
+  const hash = await sha256Hex(secretPwInput.value);
+  if(hash === HIDDEN_CHANNEL_HASH){
     closeSecretModal();
     switchToHiddenChannel();
   } else {
